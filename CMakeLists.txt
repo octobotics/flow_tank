@@ -4,10 +4,11 @@ project(flow_tank)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  std_srvs
 )
 
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs
+  CATKIN_DEPENDS roscpp std_msgs srd_srvs
 )
 
 include_directories(
