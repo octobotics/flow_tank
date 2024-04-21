@@ -4,21 +4,21 @@
 
 class FlowValueSubscriber {
 public:
-    FlowValueSubscriber() : cumulative_volume(0.0), flow_value_positive(false), reset_requested(false) {
+    FlowValueSubscriber() : cumulative_volume(0.0), flow_value_positive(false), cumulative_volume_reset(false) {
         ros::NodeHandle nh;
 
         flow_value_subscriber = nh.subscribe("/flow_value", 10, &FlowValueSubscriber::flowValueCallback, this);
         cumulative_volume_publisher = nh.advertise<std_msgs::Float32>("/cumulative_volume", 10);
 
-        reset_volume_service = nh.advertiseService("/reset_cumulative_volume", &FlowValueSubscriber::resetVolumeCallback, this);
+        reset_volume_service = nh.advertiseService("reset_cumulative_volume", &FlowValueSubscriber::resetVolumeCallback, this);
     }
 
     void flowValueCallback(const std_msgs::Float32::ConstPtr& msg) {
         flow_value = msg->data;
 
-        if (reset_requested) {
+        if (cumulative_volume_reset) {
             cumulative_volume = 0.0;
-            reset_requested = false;
+            cumulative_volume_reset = false;
             ROS_INFO("Cumulative volume reset to 0.");
         }
 
@@ -41,15 +41,16 @@ public:
 
     bool resetVolumeCallback(std_srvs::Trigger::Request& req,
                              std_srvs::Trigger::Response& res) {
-        if (req.data) {
-            reset_requested = true;
+        if (!cumulative_volume_reset) {
+            cumulative_volume_reset = true;
+            cumulative_volume = 0.0;
             res.success = true;
             res.message = "Cumulative volume reset requested.";
             ROS_INFO("Cumulative volume reset requested.");
         } else {
             res.success = false;
-            res.message = "Invalid request to reset cumulative volume.";
-            ROS_WARN("Invalid request to reset cumulative volume.");
+            res.message = "Cumulative volume is already being reset.";
+            ROS_WARN("Cumulative volume is already being reset.");
         }
         return true;
     }
@@ -75,7 +76,7 @@ private:
     double cumulative_volume;
     ros::Time start_time;
     bool flow_value_positive;
-    bool reset_requested;
+    bool cumulative_volume_reset;
 };
 
 int main(int argc, char** argv) {
